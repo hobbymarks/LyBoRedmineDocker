@@ -7,10 +7,6 @@ Color_Off='\033[0m'       # Text Reset
 Black='\033[0;30m'        # Black
 Red='\033[0;31m'          # Red
 Green='\033[0;32m'        # Green
-Yellow='\033[0;33m'       # Yellow
-Blue='\033[0;34m'         # Blue
-Purple='\033[0;35m'       # Purple
-Cyan='\033[0;36m'         # Cyan
 White='\033[0;37m'        # White
 
 function currentDateTime () {
@@ -22,15 +18,17 @@ function currentDateTime () {
 }
 
 #Open Docker, only if is not running
-if (! docker stats --no-stream ); then
+if (! docker stats --no-stream &> /dev/null ); then
     currentDateTime
     echo "S00_To Boot Docker ..."
+    startTimer=$(date +%s)
     # On Mac OS this would be the terminal command to launch Docker
     open /Applications/Docker.app
     #Wait until Docker daemon is running and has completed initialisation
-    while (! docker stats --no-stream ); do
+    while (! docker stats --no-stream &> /dev/null ); do
         # Docker takes a few seconds to initialize
-        printf "."
+        let elapsedTime=$(date +%s)-startTimer
+        printf "..$elapsedTime"
         sleep 5
     done
     echo -e "${Green}OK.${Color_Off}"
@@ -85,3 +83,4 @@ else
     docker run --name=redmine -d --link=postgresql-redmine:postgresql --publish=10083:80  --env='REDMINE_PORT=10083' --env='NGINX_MAX_UPLOAD_SIZE=200m'  --volume=/tmp/redmine:/home/redmine/data sameersbn/redmine:4.1.1-8
 fi
 
+echo "http://localhost:10083"
