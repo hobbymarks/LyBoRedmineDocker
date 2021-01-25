@@ -31,6 +31,7 @@ if (! docker stats --no-stream &> /dev/null ); then
         printf "..$elapsedTime"
         sleep 5
     done
+    printf ".."
     echo -e "${Green}OK.${Color_Off}"
 else
     currentDateTime
@@ -44,7 +45,7 @@ if [ -d "$FILE" ]; then
     echo "$FILE exists."
 else
     currentDateTime
-    printf "redmine link ..."
+    printf "\tredmine link ..."
     ln -s ~/Redmine_Docker/data_from_tmp_root/redmine $FILE
     echo -e "${Green}OK.${Color_Off}"
 fi
@@ -54,7 +55,7 @@ if [ -d "$FILE" ]; then
     echo "$FILE exists."
 else
     currentDateTime
-    printf "postgresql link ..."
+    printf "\tpostgresql link ..."
     ln -s ~/Redmine_Docker/data_from_tmp_root/postgresql $FILE
     echo -e "${Green}OK.${Color_Off}"
 fi
@@ -63,11 +64,11 @@ currentDateTime
 echo "S03_Boot Postgresql..."
 if [ "$(docker ps -a | grep postgresql-redmine)" ]; then
     currentDateTime
-    printf "docker restart ..."
+    printf "\tdocker restart ..."
     docker restart postgresql-redmine
 else
     currentDateTime
-    printf "docker run ..."
+    printf "\tdocker run ..."
     docker run --name=postgresql-redmine -d --env='DB_NAME=redmine_production' --env='DB_USER=redmine' --env='DB_PASS=password' --volume=/tmp/postgresql:/var/lib/postgresql sameersbn/postgresql:9.6-4
 fi
 
@@ -75,11 +76,11 @@ currentDateTime
 echo "S04_Boot Redmine..."
 if [ "$(docker ps -a | grep redmine)" ]; then
     currentDateTime
-    printf "docker restart ..."
+    printf "\tdocker restart ..."
     docker restart redmine
 else
     currentDateTime
-    printf "docker run ..."
+    printf "\tdocker run ..."
     docker run --name=redmine -d --link=postgresql-redmine:postgresql --publish=10083:80  --env='REDMINE_PORT=10083' --env='NGINX_MAX_UPLOAD_SIZE=200m'  --volume=/tmp/redmine:/home/redmine/data sameersbn/redmine:4.1.1-8
 fi
 
