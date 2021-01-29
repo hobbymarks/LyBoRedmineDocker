@@ -4,10 +4,11 @@
 Color_Off='\033[0m'       # Text Reset
 
 # Regular Colors
-Black='\033[0;30m'        # Black
-Red='\033[0;31m'          # Red
-Green='\033[0;32m'        # Green
-White='\033[0;37m'        # White
+Black='\033[0;30m'          # Black
+Red='\033[0;31m'            # Red
+Green='\033[0;32m'          # Green
+ForegroundBlue='\033[0;34m' #Foreground Blue
+White='\033[0;37m'          # White
 
 function currentDateTime () {
     if hash gdate &> /dev/null ; then
@@ -16,6 +17,9 @@ function currentDateTime () {
         printf "$(date +'%Y-%m-%d %T') ... "
     fi
 }
+
+RedmineImageName='sameersbn/redmine:4.1.1-8 '
+PostgresqlImageName='sameersbn/postgresql:9.6-4 '
 
 #Open Docker, only if is not running
 if (! docker stats --no-stream &> /dev/null ); then
@@ -42,7 +46,8 @@ currentDateTime
 echo "S02_Create Symbol Link..."
 FILE=/tmp/redmine
 if [ -d "$FILE" ]; then
-    echo "$FILE exists."
+    currentDateTime
+    echo -e "\t$FILE exists."
 else
     currentDateTime
     printf "\tredmine link ..."
@@ -52,7 +57,8 @@ fi
 
 FILE=/tmp/postgresql
 if [ -d "$FILE" ]; then
-    echo "$FILE exists."
+    currentDateTime
+    echo -e "\t$FILE exists."
 else
     currentDateTime
     printf "\tpostgresql link ..."
@@ -62,26 +68,38 @@ fi
 
 currentDateTime
 echo "S03_Boot Postgresql..."
-if [ "$(docker ps -a | grep postgresql-redmine)" ]; then
-    currentDateTime
-    printf "\tdocker restart ..."
-    docker restart postgresql-redmine
+result=$( docker images -q $PostgresqlImageName )
+if [[ -n "$result" ]]; then
+    if [ "$(docker ps -q --filter ancestor=$PostgresqlImageName --filter status=exited)" ]; then
+        currentDateTime
+        printf "\tdocker restart ..."
+        docker restart postgresql-redmine
+    else
+        currentDateTime
+        echo -e "\tpostgresql-redmine is already running."
+    fi
 else
     currentDateTime
     printf "\tdocker run ..."
-    docker run --name=postgresql-redmine -d --env='DB_NAME=redmine_production' --env='DB_USER=redmine' --env='DB_PASS=password' --volume=/tmp/postgresql:/var/lib/postgresql sameersbn/postgresql:9.6-4
+    docker run --name=postgresql-redmine -d --env='DB_NAME=redmine_production' --env='DB_USER=redmine' --env='DB_PASS=password' --volume=/tmp/postgresql:/var/lib/postgresql $PostgresqlImageName
 fi
 
 currentDateTime
 echo "S04_Boot Redmine..."
-if [ "$(docker ps -a | grep redmine)" ]; then
-    currentDateTime
-    printf "\tdocker restart ..."
-    docker restart redmine
+result=$( docker images -q $RedmineImageName )
+if [[ -n "$result" ]]; then
+    if [ "$(docker ps -q --filter ancestor=$RedmineImageName --filter status=exited)" ]; then
+        currentDateTime
+        printf "\tdocker restart ..."
+        docker restart redmine
+    else
+        currentDateTime
+        echo -e "\tredmine is already running."
+    fi
 else
     currentDateTime
     printf "\tdocker run ..."
-    docker run --name=redmine -d --link=postgresql-redmine:postgresql --publish=10083:80  --env='REDMINE_PORT=10083' --env='NGINX_MAX_UPLOAD_SIZE=200m'  --volume=/tmp/redmine:/home/redmine/data sameersbn/redmine:4.1.1-8
+    docker run --name=redmine -d --link=postgresql-redmine:postgresql --publish=10083:80  --env='REDMINE_PORT=10083' --env='NGINX_MAX_UPLOAD_SIZE=200m'  --volume=/tmp/redmine:/home/redmine/data $RedmineImageName
 fi
 
-echo "http://localhost:10083"
+echo -e "\nRedmine is Ready.Please access: ${ForegroundBlue}http://localhost:10083${Color_Off}"
